@@ -33,6 +33,7 @@ class Environment ():
 
     def reset(self):
         init_state = self.embedded_data['state'].sample (1).values[0]
+        self.current_state = init_state
         return init_state
 
     def step(self, actions):

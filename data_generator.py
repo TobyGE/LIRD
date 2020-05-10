@@ -4,6 +4,7 @@ import numpy as np
 import random
 import csv
 import time
+import copy
 
 import matplotlib.pyplot as plt
 
@@ -141,11 +142,96 @@ class DataGenerator():
 #                 sample_action.append (action)
             
 
-#         states.append (sample_state)
-#         actions.append (sample_action)
+#            states.append (sample_state)
+#            actions.append (sample_action)
                 
 #         return states, actions
 
+#     def sample_histo(self, user_histo, action_ratio=0.8, max_samp_by_user=5,  max_state=100, max_action=50, nb_states=[], nb_actions=[]):
+#         '''
+#         For a given historic, make one or multiple sampling.
+#         If no optional argument given for nb_states and nb_actions, then the sampling
+#         is random and each sample can have differents size for action and state.
+#         To normalize sampling we need to give list of the numbers of states and actions
+#         to be sampled.
+
+#         Parameters
+#         ----------
+#         user_histo :  DataFrame
+#                           historic of user
+#         delimiter :       string, optional
+#                           delimiter for the csv
+#         action_ratio :    float, optional
+#                           ratio form which movies in history will be selected
+#         max_samp_by_user: int, optional
+#                           Number max of sample to make by user
+#         max_state :       int, optional
+#                           Number max of movies to take for the 'state' column
+#         max_action :      int, optional
+#                           Number max of movies to take for the 'action' action
+#         nb_states :       array(int), optional
+#                           Numbers of movies to be taken for each sample made on user's historic
+#         nb_actions :      array(int), optional
+#                           Numbers of rating to be taken for each sample made on user's historic
+
+#         Returns
+#         -------
+#         states :         List(String)
+#                          All the states sampled, format of a sample: itemId&rating
+#         actions :        List(String)
+#                          All the actions sampled, format of a sample: itemId&rating
+
+
+#         Notes
+#         -----
+#         States must be before(timestamp<) the actions.
+#         If given, size of nb_states is the numbller of sample by user
+#         sizes of nb_states and nb_actions must be equals
+#         '''
+
+#         n = len(user_histo)
+#         sep = int (action_ratio * n)
+#         nb_sample = random.randint (1, max_samp_by_user)
+#         if not nb_states:
+#             nb_states = [min (random.randint (1, sep), max_state) for i in range (nb_sample)]
+#         if not nb_actions:
+#             nb_actions = [min (random.randint (1, n - sep), max_action) for i in range (nb_sample)]
+#         assert len (nb_states) == len (nb_actions), 'Given array must have the same size'
+
+#         states = []
+#         actions = []
+#         # SELECT SAMPLES IN HISTO
+#         for i in range (len (nb_states)):
+#             user_states = user_histo[user_histo['rating']>=4].iloc[0:sep]
+#             if len(user_states) >= nb_states[i]:
+#                 sample_states = user_states.sample (nb_states[i])
+#             else:
+#                 continue
+
+#             sample_actions = user_histo.iloc[-(n - sep):].sample (nb_actions[i])
+
+#             sample_state = []
+#             sample_action = []
+
+#             for j in range (nb_states[i]):
+#                 row = sample_states.iloc[j]
+#                 # FORMAT STATE
+#                 state = str (row.loc['itemId']) + '&' + str (1)
+#                 sample_state.append (state)
+
+#             for k in range (nb_actions[i]):
+#                 row = sample_actions.iloc[k]
+#                 # FORMAT ACTION
+#                 if row.loc['rating'] >= 4:
+#                     action = str (row.loc['itemId']) + '&' + str (1)
+#                 else:
+#                     action = str (row.loc['itemId']) + '&' + str (0)
+#                 sample_action.append (action)
+
+#             states.append (sample_state)
+#             actions.append (sample_action)
+#         return states, actions
+    
     def sample_histo(self, user_histo, action_ratio=0.8, max_samp_by_user=5,  max_state=100, max_action=50, nb_states=[], nb_actions=[]):
         '''
         For a given historic, make one or multiple sampling.
@@ -199,36 +285,33 @@ class DataGenerator():
 
         states = []
         actions = []
-        # SELECT SAMPLES IN HISTO
-        for i in range (len (nb_states)):
-            user_states = user_histo[user_histo['rating']>=4].iloc[0:sep]
-            if len(user_states) >= nb_states[i]:
-                sample_states = user_states.sample (nb_states[i])
-            else:
-                continue
+        rewards = []
+        for n in range(len(nb_states)):
+            state_len = nb_states[n]
+            action_len = nb_actions[n]
 
-            sample_actions = user_histo.iloc[-(n - sep):].sample (nb_actions[i])
+            item_list = user_histo['itemId'].values.tolist()
+            click_list = user_histo['rating'].values.tolist()
+            initial_state = []
+            initial_end = 0
+            for i in range(len(item_list)):
+                if click_list[i] >= 4 and len(initial_state) < state_len:
+                    initial_state.append(item_list[i])
+                    initial_end = i
 
-            sample_state = []
-            sample_action = []
 
-            for j in range (nb_states[i]):
-                row = sample_states.iloc[j]
-                # FORMAT STATE
-                state = str (row.loc['itemId']) + '&' + str (1)
-                sample_state.append (state)
 
-            for k in range (nb_actions[i]):
-                row = sample_actions.iloc[k]
-                # FORMAT ACTION
-                if row.loc['rating'] >= 4:
-                    action = str (row.loc['itemId']) + '&' + str (1)
-                else:
-                    action = str (row.loc['itemId']) + '&' + str (0)
-                sample_action.append (action)
-
-            states.append (sample_state)
-            actions.append (sample_action)
+            if len(initial_state) == state_len and (initial_end + action_len <= len(item_list)):
+                current_state = copy.copy(initial_state)
+                for i in range(initial_end+1,len(item_list),action_len):
+                    if i+action_len <= len(item_list):
+                        actions.append([str(item) + '&' + str (1) if rating >= 4 else str(item) + '&' + str (0) for item,rating in zip(item_list[i:i+action_len],click_list[i:i+action_len])])
+                        rewards.append(click_list[i:i+action_len])
+                        states.append([str(i) + '&' + str (1) for i in copy.copy(current_state)])
+                        for j in range(i,i+action_len):
+                            if click_list[j] == 1:
+                                current_state.append(item_list[j])
+                                del current_state[0]
         return states, actions
 
     def gen_train_test(self, test_ratio, seed=None):
@@ -296,6 +379,8 @@ class DataGenerator():
             for user_histo in histo_to_write:
                 states, actions = self.sample_histo (user_histo, action_ratio, max_samp_by_user, max_state, max_action,
                                                      nb_states, nb_actions)
+#                 print(len(states))
+#                 input()
                 for i in range (len (states)):
                     # FORMAT STATE
                     state_str = '|'.join (states[i])

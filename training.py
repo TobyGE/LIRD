@@ -68,8 +68,8 @@ def train(sess, environment, actor, critic, embeddings, history_length, ra_lengt
 
         states = environment.reset ()  # '6: Initialize state s_0 from previous sessions'
 
-        if (i_session + 1) % 10 == 0:  # Update average parameters every 10 episodes
-            environment.groups = environment.get_groups ()
+#         if (i_session + 1) % 10 == 0:  # Update average parameters every 10 episodes
+#             environment.groups = environment.get_groups ()
 
         exploration_noise = OrnsteinUhlenbeckNoise (history_length * embeddings.size ())
 
