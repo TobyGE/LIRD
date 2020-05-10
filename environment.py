@@ -7,11 +7,11 @@ import time
 
 import matplotlib.pyplot as plt
 
-import tensorflow as tf
+# import tensorflow as tf
 
-import keras.backend as K
-from keras import Sequential
-from keras.layers import Dense, Dropout
+# import keras.backend as K
+# from keras import Sequential
+# from keras.layers import Dense, Dropout
 
 class Environment ():
     def __init__(self, data, embeddings, alpha, gamma, fixed_length):
@@ -27,12 +27,13 @@ class Environment ():
         self.alpha = alpha  # α (alpha) in Equation (1)
         self.gamma = gamma  # Γ (Gamma) in Equation (4)
         self.fixed_length = fixed_length
-        self.current_state = self.reset ()
+        self.init_state = self.reset ()
+        self.current_state = self.init_state
         self.groups = self.get_groups ()
 
     def reset(self):
-        self.init_state = self.embedded_data['state'].sample (1).values[0]
-        return self.init_state
+        init_state = self.embedded_data['state'].sample (1).values[0]
+        return init_state
 
     def step(self, actions):
         '''
@@ -57,7 +58,7 @@ class Environment ():
                 if self.fixed_length:  # '15: Remove the first item of s_t+1'
                     self.current_state = np.delete (self.current_state, 0, axis = 0)
 
-        return cumulated_reward, self.current_state
+        return simulated_rewards, cumulated_reward, self.current_state
 
     def get_groups(self):
         ''' Calculate average state/action value for each group. Equation (3). '''
@@ -131,7 +132,8 @@ class Environment ():
             cumulated_reward = overall_reward (returned_rewards, self.gamma)
         elif reward_type == 'grouped cosine':
             # Get probability weighted cumulated reward
-            cumulated_reward = np.sum ([p * overall_reward (g['rewards'], self.gamma)
-                                        for p, g in zip (probabilities, self.groups)])
+#             cumulated_reward = np.sum ([p * overall_reward (g['rewards'], self.gamma)
+#                                         for p, g in zip (probabilities, self.groups)])
+            cumulated_reward = overall_reward (returned_rewards, self.gamma)
 
         return returned_rewards, cumulated_reward
