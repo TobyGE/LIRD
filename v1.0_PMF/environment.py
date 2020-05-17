@@ -9,21 +9,27 @@ import time
 class Environment ():
     def __init__(self, data, item_embeddings, user_embeddings, alpha, gamma, fixed_length):
         self.item_embeddings = item_embeddings
-        self.user_embeddings = user_embeddings
+		self.user_embeddings = user_embeddings
 
-        self.data = pd.DataFrame ()
-        self.data['state'] = [np.array([user_embeddings.get_embedding(i),
-                                        item_embeddings.embed(row) for i, row in data.iterrows()]
-		
-        self.user_history = {}
-		for i, row in data.iterrows()
-										= [np.array ([row for _, row in data.iterrows()]
-
-        
+        self.embedded_data = pd.DataFrame ()
+        self.embedded_data['user'] = [np.array ([embeddings.get_embedding (item_id)
+                                                  for item_id in row['user']]) for _, row in data.iterrows ()]
+        self.embedded_data['state'] = [np.array ([embeddings.get_embedding (item_id)
+                                                   for item_id in row['state']]) for _, row in data.iterrows ()]
+        self.embedded_data['n_state'] = 
         self.init_state = self.reset ()
         self.current_state = self.init_state
         self.groups = self.get_groups ()
-
+	
+	def transform(self, data):
+		user = []
+		state = []
+		n_state = []
+		for _, row in data.iterrows ():
+			u = embeddings.get_embedding(row['user'][0])
+			items = [embeddings.get_embedding (item_id) for item_id in row['state']]
+			user.append([u])
+                                                   
     def reset(self):
         init_state = self.data['state'].sample (1).values[0]
         self.current_state = init_state
@@ -38,12 +44,11 @@ class Environment ():
           cumulated_reward: overall reward.
           current_state: updated state.
         '''
-		user_history = self.user_history[self.current_state[0]]
-		reward = np.zeros(len(actions))
-		for i in actions											 
-        # '18: Compute overall reward r_t according to Equation (4)'
-        simulated_rewards, cumulated_reward = self.simulate_rewards (self.current_state.reshape ((1, -1)),
-                                                                     actions.reshape ((1, -1)))
+		current_user = self.current_state[0]
+		simulated_ratings = actions * current_user
+		simulated_rewards = [1 if i >= 4 else 0 for i in simulated_ratings]
+												 
+        cumulated_reward = 
 
         # '11: Set s_t+1 = s_t' <=> self.current_state = self.current_state
 

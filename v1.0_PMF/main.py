@@ -35,7 +35,8 @@ fixed_length = True # Fixed memory length
 # dg.write_csv('train.csv', dg.train, nb_states=[history_length], nb_actions=[ra_length])
 # dg.write_csv('test.csv', dg.test, nb_states=[history_length], nb_actions=[ra_length])
 
-data = read_file(os.path.dirname(os.getcwd())+'/data/ml-100k/train.csv')
+# data = read_file(os.path.dirname(os.getcwd())+'/data/ml-100k/train.csv')
+data = read_file('/data/ml-100k/train.csv')
 
 # if True: # Generate embeddings?
 #   eg = EmbeddingsGenerator(dg.user_train, pd.read_csv('ml-100k/u.data', sep='\t', names=['userId', 'itemId', 'rating', 'timestamp']))

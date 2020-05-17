@@ -312,7 +312,7 @@ class DataGenerator():
                             if click_list[j] == 1:
                                 current_state.append(item_list[j])
                                 del current_state[0]
-        return states, actions
+				return states, actions
 
     def gen_train_test(self, test_ratio, seed=None):
         '''
