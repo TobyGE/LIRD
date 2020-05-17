@@ -62,8 +62,8 @@ class Environment ():
 			if historic_rewards[k] > 0:  # '13: if r_t^k > 0 then'
 				# '14: Add a_t^k to the end of s_t+1'
 				self.current_state = np.append (self.current_state, [actions[k]], axis = 0)
-				if self.fixed_length:  # '15: Remove the first item of s_t+1'
-					self.current_state = np.delete (self.current_state, 0, axis = 0)
+# 				if self.fixed_length:  # '15: Remove the first item of s_t+1'
+				self.current_state = np.delete (self.current_state, 0, axis = 0)
 
 		return historic_rewards, cumulated_reward, self.current_state
 
