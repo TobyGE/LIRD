@@ -1,3 +1,5 @@
+import numpy as np
+
 class Embeddings:
 	def __init__(self, item_embeddings):
 		self.item_embeddings = item_embeddings

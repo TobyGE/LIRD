@@ -1,4 +1,4 @@
-from data_generator import DataGenerator
+# from data_generator import DataGenerator
 from embeddings_generator import *
 import tensorflow as tf
 from training import *
@@ -34,7 +34,7 @@ fixed_length = True # Fixed memory length
 # dg.write_csv('train.csv', dg.train, nb_states=[history_length], nb_actions=[ra_length])
 # dg.write_csv('test.csv', dg.test, nb_states=[history_length], nb_actions=[ra_length])
 
-data = read_file(os.path.dirname(os.getcwd())+'/data/ml-100k/train.csv')
+data = read_file('./data/ml-100k/train.csv')
 
 # if True: # Generate embeddings?
 #   eg = EmbeddingsGenerator(dg.user_train, pd.read_csv('ml-100k/u.data', sep='\t', names=['userId', 'itemId', 'rating', 'timestamp']))
@@ -49,7 +49,7 @@ data = read_file(os.path.dirname(os.getcwd())+'/data/ml-100k/train.csv')
 # files.upload()
 
 
-embeddings = Embeddings(read_embeddings(os.path.dirname(os.getcwd())+'/data/ml-100k/embeddings.csv'))
+embeddings = Embeddings(read_embeddings('./data/ml-100k/embeddings.csv'))
 
 state_space_size = embeddings.size() * history_length
 action_space_size = embeddings.size() * ra_length

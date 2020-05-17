@@ -1,5 +1,6 @@
-from data_generator import DataGenerator
-from embeddings_generator import EmbeddingsGenerator,read_file
+# from data_generator import DataGenerator
+# from embeddings_generator import EmbeddingsGenerator
+from data_util import read_file
 from embeddings import Embeddings
 import tensorflow as tf
 from training import *
@@ -14,7 +15,7 @@ import os
 
 # if __name__ == '__main__':
 
-history_length = 12 # N in article
+history_length = 5 # N in article
 ra_length = 4 # K in article
 discount_factor = 0.99 # Gamma in Bellman equation
 actor_lr = 0.0001
@@ -36,9 +37,10 @@ fixed_length = True # Fixed memory length
 # dg.write_csv('test.csv', dg.test, nb_states=[history_length], nb_actions=[ra_length])
 
 # data = read_file(os.path.dirname(os.getcwd())+'/data/ml-100k/train.csv')
-data = read_file('/data/ml-100k/train.csv')
 
-# if True: # Generate embeddings?
+data = read_file('./data/ml-100k/train_data.csv')
+
+# if True: # Generate embeddings
 #   eg = EmbeddingsGenerator(dg.user_train, pd.read_csv('ml-100k/u.data', sep='\t', names=['userId', 'itemId', 'rating', 'timestamp']))
 #   eg.train(nb_epochs=300)
 #   train_loss, train_accuracy = eg.test(dg.user_train)
@@ -48,32 +50,31 @@ data = read_file('/data/ml-100k/train.csv')
 #   eg.save_embeddings('embeddings.csv')
 
 
-# files.upload()
+
+item_embeddings = Embeddings(np.load('./data/ml-100k/item_embed.npy'))
+user_embeddings = Embeddings(np.load('./data/ml-100k/user_embed.npy'))
+
+print('Successfully load traing data and embeddings!')
+
+state_space_size = item_embeddings.size() * history_length
+action_space_size = item_embeddings.size() * ra_length
 
 
-item_embeddings = Embeddings(np.load(os.path.dirname(os.getcwd())+'/data/ml-100k/item_embed.npy'))
-user_embeddings = Embeddings(np.load(os.path.dirname(os.getcwd())+'/data/ml-100k/user_embed.npy'))
-
-
-state_space_size = embeddings.size() * history_length
-action_space_size = embeddings.size() * ra_length
-
-
-environment = Environment(data, item_embeddings, user_embeddings, alpha, gamma, fixed_length)
+environment = Environment(data, item_embeddings, user_embeddings, gamma)
 
 tf.reset_default_graph() # For multiple consecutive executions
 
 sess = tf.Session()
 # '1: Initialize actor network f_θ^π and critic network Q(s, a|θ^µ) with random weights'
-actor = Actor(sess, state_space_size, action_space_size, batch_size, ra_length, history_length, embeddings.size(), tau, actor_lr)
-critic = Critic(sess, state_space_size, action_space_size, history_length, embeddings.size(), tau, critic_lr)
+actor = Actor(sess, state_space_size, action_space_size, batch_size, ra_length, history_length, item_embeddings.size(), tau, actor_lr)
+critic = Critic(sess, state_space_size, action_space_size, history_length, item_embeddings.size(), tau, critic_lr)
 
-train(sess, environment, actor, critic, embeddings, history_length, ra_length, buffer_size, batch_size, discount_factor, nb_episodes, filename_summary, nb_rounds)
+train(sess, environment, actor, critic, item_embeddings, history_length, ra_length, buffer_size, batch_size, discount_factor, nb_episodes, filename_summary, nb_rounds)
 
 
 
-dict_embeddings = {}
-for i, item in enumerate (embeddings.get_embedding_vector ()):
-    str_item = str (item)
-    assert (str_item not in dict_embeddings)
-    dict_embeddings[str_item] = i
+# dict_embeddings = {}
+# for i, item in enumerate (embeddings.get_embedding_vector ()):
+#     str_item = str (item)
+#     assert (str_item not in dict_embeddings)
+#     dict_embeddings[str_item] = i

@@ -18,6 +18,10 @@ class DataPreprocessor():
 		List all the users historic
 		'''
 		self.data  = self.load_datas(datapath, itempath)
+		userId = np.array(self.data['userId'].values.tolist()) - 1
+		itemId = np.array(self.data['itemId'].values.tolist()) - 1
+		self.data['userId'] = list(userId)
+		self.data['itemId'] = list(itemId)
 		self.users = self.data['userId'].unique()   #list of all users
 		self.items = self.data['itemId'].unique()   #list of all items
 
@@ -71,7 +75,7 @@ class DataPreprocessor():
 	def sample_histo_v5(self, user_histo, nb_states, pivot_rating=4):
 		prop_histo = user_histo[user_histo['rating'] >= pivot_rating]
 		if len(prop_histo) > nb_states:
-			user = user_histo['userId'][0] - 1
+			user = user_histo['userId'][0]
 			initial_state =  prop_histo[0:nb_states]['itemId'].values.tolist()
 			user_history =  prop_histo[nb_states:]['itemId'].values.tolist()
 		return user, initial_state, user_history
@@ -83,7 +87,7 @@ class DataPreprocessor():
 		initial_states = []
 		user_histories = []
 		
-		print(len(self.histo))
+# 		print(len(self.histo))
 		
 		for user_histo in self.histo:
 			try:

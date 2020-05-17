@@ -1,7 +1,20 @@
 import pandas as pd
 import numpy as np
+import ast  
 
-def read_file(data_path):
+def read_file(filename):
+    df = pd.read_csv(filename)
+    state = [ast.literal_eval(i) for i in df['state'].values.tolist()]
+    user = df['user'].values.tolist()
+    history = [ast.literal_eval(i) for i in df['history'].values.tolist()]
+    
+    data = pd.DataFrame ()
+    data['user'] = user
+    data['state'] = state
+    data['history'] = history
+    return data
+
+def old_read_file(data_path):
     ''' Load data from train.csv or test.csv. '''
 
     data = pd.read_csv (data_path, sep = ';')
