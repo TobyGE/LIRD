@@ -10,6 +10,7 @@ import time
 class Environment ():
 	def __init__(self, data, item_embeddings, user_embeddings, gamma):
 		self.data = data
+		self.data_length = len(data)
 		self.item_embeddings = item_embeddings
 		self.user_embeddings = user_embeddings
 		self.gamma = gamma
@@ -19,14 +20,15 @@ class Environment ():
 		self.embedded_data['state'] = [np.array(item_embeddings.embed(row['state'])) for _, row in data.iterrows ()]
 		self.embedded_data['history'] = [np.array(item_embeddings.embed(row['history'])) for _, row in data.iterrows ()]
 
-		self.init_state = self.reset(0)
+		self.init_state = self.reset()
 
 		self.item_embed_dict = {}
 		for i, embed in enumerate(item_embeddings.get_embedding_vector()):
 			self.item_embed_dict[tuple(embed)] = i
 
 
-	def reset(self, idx):
+	def reset(self):
+		idx = random.randint(0,self.data_length - 1)
 		init_user, _, init_history = self.data.loc[idx].values.tolist()
 		_, init_state, _ = self.embedded_data.loc[idx].values.tolist()
 		self.current_user = init_user
@@ -44,8 +46,7 @@ class Environment ():
 		  cumulated_reward: overall reward.
 		  current_state: updated state.
 		'''
-	# 		current_user_embed = self.user_embeddings.get_embedding(self.current_user)
-		
+
 # 		actions_to_items = [self.item_embed_dict[tuple(i)] for i in actions]
 # 		print(actions_to_items,item_idxes)
 # 		input()
@@ -53,11 +54,11 @@ class Environment ():
 		historic_rewards = [1 if idx in self.current_history else 0 for idx in item_idxes]
 		cumulated_reward = self.overall_reward(historic_rewards, self.gamma)
 
-	# 		simulated_ratings = actions * current_user_embed
-	# 		simulated_rewards = [1 if i >= 4 else 0 for i in simulated_ratings]
+# 			simulated_ratings = actions * current_user_embed
+# 			simulated_rewards = [1 if i >= 4 else 0 for i in simulated_ratings]
 
 
-		# '11: Set s_t+1 = s_t' <=> self.current_state = self.current_state
+# 		'11: Set s_t+1 = s_t' <=> self.current_state = self.current_state
 		for k in range (len(historic_rewards)):  # '12: for k = 1, K do'
 			if historic_rewards[k] > 0:  # '13: if r_t^k > 0 then'
 				# '14: Add a_t^k to the end of s_t+1'
@@ -66,6 +67,7 @@ class Environment ():
 				self.current_state = np.delete (self.current_state, 0, axis = 0)
 
 		return historic_rewards, cumulated_reward, self.current_state
+# 		return [0,0,0,0], 0, self.current_state
 
 	# Equation (4)
 	def overall_reward(self, rewards, gamma):

@@ -17,7 +17,7 @@ class DataPreprocessor():
 		List the users and the items
 		List all the users historic
 		'''
-		self.data  = self.load_datas(datapath, itempath)
+		self.data  = self.load_data(datapath, itempath)
 		userId = np.array(self.data['userId'].values.tolist()) - 1
 		itemId = np.array(self.data['itemId'].values.tolist()) - 1
 		self.data['userId'] = list(userId)
@@ -29,7 +29,7 @@ class DataPreprocessor():
 		self.histo = self.gen_histo()
 
 
-	def load_datas(self, datapath, itempath):
+	def load_data(self, datapath, itempath):
 		'''
 		Load the data and merge the name of each movie.
 		A row corresponds to a rate given by a user to a movie.
@@ -72,7 +72,7 @@ class DataPreprocessor():
 		return historic_users
 
 	
-	def sample_histo_v5(self, user_histo, nb_states, pivot_rating=4):
+	def sample_histo_v5(self, user_histo, nb_states, pivot_rating):
 		prop_histo = user_histo[user_histo['rating'] >= pivot_rating]
 		if len(prop_histo) > nb_states:
 			user = user_histo['userId'][0]
@@ -82,16 +82,15 @@ class DataPreprocessor():
 	
 
 
-	def write_csv(self, train_test_ratio=0.8, nb_states=5):
+	def write_csv(self, train_test_ratio=0.8, nb_states=5, pivot_rating=0):
 		users = []
 		initial_states = []
 		user_histories = []
 		
-# 		print(len(self.histo))
 		
 		for user_histo in self.histo:
 			try:
-				user, init_state, u_history = self.sample_histo_v5(user_histo, nb_states)
+				user, init_state, u_history = self.sample_histo_v5(user_histo, nb_states, pivot_rating)
 				users.append(user)
 				initial_states.append(init_state)
 				user_histories.append(u_history)

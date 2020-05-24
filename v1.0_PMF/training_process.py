@@ -14,6 +14,8 @@ from keras import Sequential
 from keras.layers import Dense, Dropout
 from replay import ReplayMemory, experience_replay
 
+from environment import Environment
+
 class OrnsteinUhlenbeckNoise:
 	''' Noise for Actor predictions. '''
 
@@ -30,7 +32,7 @@ class OrnsteinUhlenbeckNoise:
 
 
 def train(sess, environment, actor, critic, embeddings, history_length, ra_length, buffer_size, batch_size,
-	  discount_factor, nb_episodes, filename_summary, nb_rounds):
+	  discount_factor, nb_episodes, filename_summary, nb_rounds, **env_args):
 	''' Algorithm 3 in article. '''
 
 	# Set up summary operators
@@ -65,11 +67,13 @@ def train(sess, environment, actor, critic, embeddings, history_length, ra_lengt
 		session_critic_loss = 0
 
 		# '5: Reset the item space I' is useless because unchanged.
-
-		states = environment.reset (i_session)  # '6: Initialize state s_0 from previous sessions'
-# 		print(states.shape)
+		nb_env = 10
+		envs = np.asarray([Environment(**env_args) for i in range(nb_env)])
+# 		u = [e.current_user for e in envs]
+# 		print(u)
 # 		input()
-
+		states = np.array([env.current_state for env in envs])  # '6: Initialize state s_0 from previous sessions'
+		
 	#         if (i_session + 1) % 10 == 0:  # Update average parameters every 10 episodes
 	#             environment.groups = environment.get_groups ()
 
@@ -81,30 +85,25 @@ def train(sess, environment, actor, critic, embeddings, history_length, ra_lengt
 			# '9: Select an action a_t = {a_t^1, ..., a_t^K} according to Algorithm 2'
 			actions, item_idxes = actor.get_recommendation_list (
 				ra_length,
-				states.reshape (1, -1),  # TODO + exploration_noise.get().reshape(1, -1),
+				states.reshape (nb_env, -1),  # TODO + exploration_noise.get().reshape(1, -1),
 				embeddings)
-			actions = actions.reshape (ra_length, embeddings.size ())
-			item_idxes = item_idxes.reshape (ra_length)
-# 			print(actions.shape)
-# 			print(item_idxes.shape)
 
 			# '10: Execute action a_t and observe the reward list {r_t^1, ..., r_t^K} for each item in a_t'
-			sim_results, rewards, next_states = environment.step (actions, item_idxes)
-# 			print(sim_results)
-# 			input()
+			for env, state, action, items in zip(envs, states, actions, item_idxes):
+				sim_results, rewards, next_state = env.step (action, items)
 
-			# '19: Store transition (s_t, a_t, r_t, s_t+1) in D'
-			replay_memory.add (states.reshape (history_length * embeddings.size ()),
-							   actions.reshape (ra_length * embeddings.size ()),
-							   [rewards],
-							   next_states.reshape (history_length * embeddings.size ()))
+				# '19: Store transition (s_t, a_t, r_t, s_t+1) in D'
+				replay_memory.add (state.reshape (history_length * embeddings.size ()),
+								   action.reshape (ra_length * embeddings.size ()),
+								   [rewards],
+								   next_state.reshape (history_length * embeddings.size ()))
 
-			states = next_states  # '20: Set s_t = s_t+1'
+				state = next_state  # '20: Set s_t = s_t+1'
 
-			session_reward += rewards
+				session_reward += rewards
 
 			# '21: Stage 2: Parameter Updating Stage'
-			if replay_memory.size () >= batch_size:  # Experience replay
+			if replay_memory.size () >= batch_size * nb_env:  # Experience replay
 				replay = True
 				replay_Q_value, critic_loss = experience_replay (replay_memory, batch_size,
 																 actor, critic, embeddings, ra_length,

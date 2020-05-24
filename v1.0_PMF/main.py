@@ -3,7 +3,7 @@
 from data_util import read_file
 from embeddings import Embeddings
 import tensorflow as tf
-from training import *
+from training_process import *
 from environment import Environment
 from actor import *
 from critic import *
@@ -54,22 +54,30 @@ data = read_file('./data/ml-100k/train_data.csv')
 item_embeddings = Embeddings(np.load('./data/ml-100k/item_embed.npy'))
 user_embeddings = Embeddings(np.load('./data/ml-100k/user_embed.npy'))
 
-print('Successfully load traing data and embeddings!')
+print('Successfully load training data and embeddings!')
 
 state_space_size = item_embeddings.size() * history_length
 action_space_size = item_embeddings.size() * ra_length
 
+env_args = {}
+env_args['data'] = data
+env_args['item_embeddings'] = item_embeddings
+env_args['user_embeddings'] = user_embeddings
+env_args['gamma'] = gamma
+environment = Environment(**env_args)
 
-environment = Environment(data, item_embeddings, user_embeddings, gamma)
+tf.compat.v1.reset_default_graph() # For multiple consecutive executions
 
-tf.reset_default_graph() # For multiple consecutive executions
-
-sess = tf.Session()
+if tf.test.is_gpu_available():
+	config = tf.ConfigProto(device_count = {'GPU': 0})
+	sess = tf.Session(config=config)
+else:
+	sess = tf.Session()
 # '1: Initialize actor network f_θ^π and critic network Q(s, a|θ^µ) with random weights'
 actor = Actor(sess, state_space_size, action_space_size, batch_size, ra_length, history_length, item_embeddings.size(), tau, actor_lr)
 critic = Critic(sess, state_space_size, action_space_size, history_length, item_embeddings.size(), tau, critic_lr)
 
-train(sess, environment, actor, critic, item_embeddings, history_length, ra_length, buffer_size, batch_size, discount_factor, nb_episodes, filename_summary, nb_rounds)
+train(sess, environment, actor, critic, item_embeddings, history_length, ra_length, buffer_size, batch_size, discount_factor, nb_episodes, filename_summary, nb_rounds, **env_args)
 
 
 

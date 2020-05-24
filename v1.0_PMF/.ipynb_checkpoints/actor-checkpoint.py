@@ -28,7 +28,7 @@ class Actor ():
 		self.learning_rate = learning_rate
 		self.scope = scope
 
-		with tf.variable_scope (self.scope):
+		with tf.compat.v1.variable_scope (self.scope):
 			# Build Actor network
 			self.action_weights, self.state, self.sequence_length = self._build_net ('estimator_actor')
 			self.network_params = tf.trainable_variables ()
@@ -78,7 +78,7 @@ class Actor ():
 		with tf.variable_scope (scope):
 			# Inputs: current state, sequence_length
 			# Outputs: action weights to compute the score Equation (6)
-			state = tf.placeholder (tf.float32, [None, self.state_space_size], 'state')
+			state = tf.compat.v1.placeholder (tf.float32, [None, self.state_space_size], 'state')
 			state_ = tf.reshape (state, [-1, self.history_length, self.embedding_size])
 			sequence_length = tf.placeholder (tf.int32, [None], 'sequence_length')
 			cell = tf.nn.rnn_cell.GRUCell (self.embedding_size,
@@ -130,35 +130,41 @@ class Actor ():
 		  Recommendation List: list of embedded items as future actions.
 		'''
 
-		def get_score(weights, embedding, batch_size):
-			"""
-			Equation (6)
-			Args:
-			  weights: w_t^k shape=(embedding_size,).
-			  embedding: e_i shape=(embedding_size,).
-			Returns:
-			  score of the item i: score_i=w_t^k.e_i^T shape=(1,).
-			"""
-			ret = np.dot (weights, embedding.T)
-			return ret
-
 		batch_size = noisy_state.shape[0]
+
 
 		# '1: Generate w_t = {w_t^1, ..., w_t^K} according to Equation (5)'
 		method = self.predict_target if target else self.predict
-		weights = method (noisy_state, [ra_length] * batch_size)
-
+		
+		
+		weights = tf.cast(method (noisy_state, [ra_length] * batch_size), tf.float64)
+		scores = tf.linalg.matmul(weights, tf.transpose(embeddings.get_embedding_vector()))
+		item_idxes = tf.math.argmax(scores,2)
+# 		print(weights.shape)
+# 		print(scores.shape)
+# 		print(item_idxes.shape)
+# 		input()
+		with tf.Session() as sess:
+			item_idxes = sess.run(item_idxes)
+		actions = np.array([embeddings.embed(i) for i in item_idxes])
+# 		print(actions.shape)
+# 		input()
+		
+		
 		# '3: Score items in I according to Equation (6)'
-		scores = np.array ([[[get_score (weights[i][k], embedding, batch_size)
-							  for embedding in embeddings.get_embedding_vector ()]
-							 for k in range (ra_length)]
-							for i in range (batch_size)])
+# 		weights = method (noisy_state, [ra_length] * batch_size)
+# 		scores = np.array ([[[get_score (weights[i][k], embedding, batch_size)
+# 							  for embedding in embeddings.get_embedding_vector ()]
+# 							 for k in range (ra_length)]
+# 							for i in range (batch_size)])
 
-		# '8: return a_t'
-		actions = np.array ([[embeddings.get_embedding (np.argmax (scores[i][k]))
-						   for k in range (ra_length)]
-						  for i in range (batch_size)])
-		item_idxes = np.array ([[np.argmax(scores[i][k])
-						   for k in range (ra_length)]
-						  for i in range (batch_size)])
+# 		# '8: return a_t'
+# 		actions = np.array ([[embeddings.get_embedding (np.argmax (scores[i][k]))
+# 						   for k in range (ra_length)]
+# 						  for i in range (batch_size)])
+# 		item_idxes = np.array ([[np.argmax(scores[i][k])
+# 						   for k in range (ra_length)]
+# 						  for i in range (batch_size)])
+# 		print(item_idxes)
+# 		input()
 		return actions, item_idxes
